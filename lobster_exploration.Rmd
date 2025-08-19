@@ -1,0 +1,115 @@
+---
+title: "Lobster exploration"
+author: "Joaquin Sandoval"
+date: "2025-08-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(janitor)
+```
+
+```{r}
+#read in lobster data, remove NAs, uncount(count), removed count column 
+
+lobster_abundance <- read_csv(here::here("data", "Lobster_Abundance_All_Years_20210412.csv"), na = c("-99999", "")) |> 
+janitor::clean_names() |> 
+  uncount(count)
+#uncount got rid of the column 'count' and now each individual is its own row, from 'frequency' to 'case' format 
+```
+
+#Find counts and mean sizes by site & year 
+
+```{r}
+
+#Creating a subset that finds the mean carapace lengths of lobsters observed in the dataset by site/year
+
+carapace_subset <- lobster_abundance |> 
+  group_by(site, year) |> 
+  summarize(mean_carapace = mean(size_mm, na.rm = TRUE))
+
+#Create ggplot graph of number of total lobsters observed (y-axis) by year (x-axis)
+
+#Need to get count of total 
+
+total_lobsters <- lobster_abundance |> 
+  count(site, year) |> 
+  drop_na()
+ 
+ggplot(data = total_lobsters, 
+       aes(x = year, 
+           y = n))+ 
+  geom_line(aes(color = site)) + 
+  xlab("Year")+ 
+  ylab("Total Lobsters Observed")
+  
+```
+
+#Find the proportion of legal lobsters at each site for 2020 
+
+```{r}
+
+total_lobsters1 <- lobster_abundance |> 
+  count(site, year, size_mm) |> 
+  drop_na()
+
+legal_lobster_subset <- total_lobsters1 |> 
+  filter(year == "2020") |> 
+  group_by(site) |> 
+  mutate(legal = case_when(size_mm > 79.76 ~ "yes", 
+            size_mm < 79.76 ~ "no"))
+
+ggplot(data = legal_lobster_subset, 
+       aes(x = site, 
+           y = n), position = "fill") + 
+  geom_col(aes(fill = legal), position = "fill") + 
+  xlab("Site") + 
+  ylab("Proportion of Legal Lobsters")
+
+```
+##Task 3: Random lobster wrangling 
+```{r}
+
+#creating subset that only contains lobsters from IVEE, NAPL, and CARP
+ex_a <- lobster_abundance |> 
+  filter(site %in% c("IVEE","CARP","NAPLE"))
+
+#creating subset that only contains lobsters observed in August 
+
+ex_b <- lobster_abundance |> 
+  filter(month == 8) 
+
+#creating a subset with lobsters at AQUE OR with a carapace length greater than 70 mm 
+
+ex_c <- lobster_abundance |> 
+  filter(site == "AQUE" | size_mm > 70)
+
+#creating a subset that does not include observations from NAPL 
+
+ex_d <- lobster_abundance |> 
+ filter(!site == "NAPL")
+
+#find the mean and standard deviation of lobster carapace length, grouped by site 
+
+ex_e <- lobster_abundance |> 
+  group_by(site) |> 
+  summarize(mean_carapace = mean(size_mm, na.rm = TRUE), sd_carapace = sd(size_mm, na.rm = TRUE)) 
+
+#find the maximum carapace length by site and month 
+ex_f <- lobster_abundance |> 
+  group_by(site, month) |> 
+  summarize(max(size_mm, na.rm = TRUE))
+
+#add a new column that contains lobster carapace length converted to centimeters 
+
+  
+
+```
+
+
